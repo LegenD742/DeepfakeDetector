@@ -1,0 +1,20 @@
+rmx.md
+backend/model.pt
+
+# Python
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Kaggle credentials
+kaggle.json
+
+# OS
+.DS_Store
+Thumbs.db
