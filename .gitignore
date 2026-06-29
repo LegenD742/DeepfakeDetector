@@ -3,6 +3,8 @@ backend/model.pt
 
 # Python
 backend/venv/
+backend/mlvenv/
+
 __pycache__/
 *.pyc
 *.pyo

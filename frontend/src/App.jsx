@@ -152,7 +152,7 @@ export default function App() {
       <div style={s.page}>
         <div style={s.header}>
           <h1 style={s.title}>Deepfake detector</h1>
-          <p style={s.sub}>FFT · ELA · CNN — no external API calls</p>
+          <p style={s.sub}></p>
         </div>
 
         {!preview && (
