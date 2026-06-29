@@ -10,10 +10,12 @@ import base64
 import io
 import time
 
+import torch
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
+from torchvision import transforms
 
 from model import load_model
 from detector import analyze
@@ -33,6 +35,7 @@ MODEL = load_model("model.pt")
 print("[startup] Ready.")
 
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -40,7 +43,6 @@ def health():
 
 @app.post("/analyze")
 async def analyze_image(file: UploadFile = File(...)):
-    # Validate file type
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image.")
 
@@ -57,7 +59,6 @@ async def analyze_image(file: UploadFile = File(...)):
     result, ela_image = analyze(img, MODEL)
     elapsed = round((time.perf_counter() - t0) * 1000)
 
-    # Encode ELA image as base64 so the frontend can display it without a second request
     ela_buf = io.BytesIO()
     ela_image.save(ela_buf, format="PNG")
     ela_b64 = base64.b64encode(ela_buf.getvalue()).decode()

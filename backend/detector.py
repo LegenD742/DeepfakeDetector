@@ -25,10 +25,7 @@ _cnn_transform = transforms.Compose([
     transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STD),
 ])
 
-
-# ---------------------------------------------------------------------------
-# Signal 1 — FFT frequency analysis
-# ---------------------------------------------------------------------------
+print(f"[detector] DEVICE = {DEVICE}")
 
 def fft_score(img: Image.Image) -> float:
     """
@@ -59,17 +56,12 @@ def fft_score(img: Image.Image) -> float:
     mid_energy  = magnitude[(dist >= low_r) & (dist < high_r)].sum()
     total       = magnitude.sum() + 1e-8
 
-    # High mid-freq ratio relative to low = suspicious
     ratio = (mid_energy / total)
 
-    # Normalise: empirically real ~0.30-0.40, AI ~0.42-0.55
     score = np.clip((ratio - 0.30) / 0.25, 0.0, 1.0)
     return float(score)
 
 
-# ---------------------------------------------------------------------------
-# Signal 2 — Error Level Analysis (ELA)
-# ---------------------------------------------------------------------------
 
 def ela_score(img: Image.Image, quality: int = 90) -> tuple[float, Image.Image]:
     """
@@ -97,39 +89,27 @@ def ela_score(img: Image.Image, quality: int = 90) -> tuple[float, Image.Image]:
 
     diff = np.abs(orig_arr - recomp_arr)
 
-    # Amplify for visualisation (10x, clipped to 255)
     ela_vis = np.clip(diff * 10, 0, 255).astype(np.uint8)
     ela_image = Image.fromarray(ela_vis)
 
-    # Score: std of diff normalised to [0,1]
-    # Real images: low std (~2-8). AI / edited: higher std (>15)
     std = diff.std()
     score = float(np.clip((std - 2.0) / 30.0, 0.0, 1.0))
 
     return score, ela_image
 
 
-# ---------------------------------------------------------------------------
-# Signal 3 — CNN inference
-# ---------------------------------------------------------------------------
 
 def cnn_score(img: Image.Image, model: torch.nn.Module) -> float:
-    """
-    Returns probability in [0, 1] that the image is AI-generated / fake.
-    Model output: logit where sigmoid > 0.5 → REAL (class 1 in CIFAKE).
-    We invert: fake_prob = 1 - real_prob.
-    """
     tensor = _cnn_transform(img.convert("RGB")).unsqueeze(0).to(DEVICE)
+    model = model.to(DEVICE)
     with torch.no_grad():
         logit = model(tensor)
         real_prob = torch.sigmoid(logit).item()
     fake_prob = 1.0 - real_prob
+    print(f"[cnn_score] logit={logit.item():.4f} real_prob={real_prob:.4f} fake_prob={fake_prob:.4f}")
     return float(fake_prob)
 
 
-# ---------------------------------------------------------------------------
-# Fusion
-# ---------------------------------------------------------------------------
 
 def fuse(fft: float, ela: float, cnn: float) -> dict:
     """
@@ -162,9 +142,6 @@ def fuse(fft: float, ela: float, cnn: float) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Main entry point
-# ---------------------------------------------------------------------------
 
 def analyze(img: Image.Image, model: torch.nn.Module) -> tuple[dict, Image.Image]:
     """
